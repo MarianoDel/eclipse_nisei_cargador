@@ -19,7 +19,7 @@ extern volatile unsigned char acswitch_timer;
 
 
 // ------- Funciones del Modulo -------
-
+/*
 void UpdateSwitches (void)
 {
 	//revisa los switches cada 10ms
@@ -46,7 +46,9 @@ void UpdateSwitches (void)
 		switches_timer = SWITCHES_TIMER_RELOAD;
 	}
 }
+*/
 
+/*
 void UpdateACSwitch (void)
 {
 	//revisa el switch ac cada 12ms
@@ -74,7 +76,9 @@ void UpdateACSwitch (void)
 			sac_aux = 1;
 	}
 }
+*/
 
+/*
 unsigned char CheckACSw (void)	//cada check tiene 12ms
 {
 	if (sac > AC_SWITCH_THRESHOLD_FULL)
@@ -88,7 +92,9 @@ unsigned char CheckACSw (void)	//cada check tiene 12ms
 
 	return S_NO;
 }
+*/
 
+/*
 unsigned char CheckS1 (void)	//cada check tiene 10ms
 {
 	if (s1 > SWITCHES_THRESHOLD_FULL)
@@ -102,7 +108,9 @@ unsigned char CheckS1 (void)	//cada check tiene 10ms
 
 	return S_NO;
 }
+*/
 
+/*
 unsigned char CheckS2 (void)
 {
 	if (s2 > SWITCHES_THRESHOLD_FULL)
@@ -116,5 +124,6 @@ unsigned char CheckS2 (void)
 
 	return S_NO;
 }
+*/
 
 

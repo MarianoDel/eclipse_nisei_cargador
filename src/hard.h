@@ -10,90 +10,57 @@
 
 
 //-------- Defines For Configuration -------------
-#define VER_1_0
 
 
 //-------- End Of Defines For Configuration ------
-
-//GPIOA pin0
-//GPIOA pin1
-//GPIOA pin2
-#define TX ((GPIOA->ODR & 0x0004) != 0)
-#define TX_ON	GPIOA->BSRR = 0x00000004
-#define TX_OFF GPIOA->BSRR = 0x00040000
-
-//GPIOA pin3	interface a LCD
-
-//GPIOA pin4
-#define LCD_E ((GPIOA->ODR & 0x0010) != 0)
-#define LCD_E_ON	GPIOA->BSRR = 0x00000010
-#define LCD_E_OFF GPIOA->BSRR = 0x00100000
+//GPIOA pin0	ADC FASE
+//GPIOA pin1	ADC VBAT
+//GPIOA pin2	ADC I_OUT
+//GPIOA pin3	ADC TEMP
+//GPIOA pin4	ADC SET_LOAD
 
 //GPIOA pin5
-#define LCD_RS ((GPIOA->ODR & 0x0020) != 0)
-#define LCD_RS_ON	GPIOA->BSRR = 0x00000020
-#define LCD_RS_OFF GPIOA->BSRR = 0x00200000
-
 //GPIOA pin6
-//para PWM_CH1
-
 //GPIOA pin7
-#define CTRL_BKL ((GPIOA->ODR & 0x0080) != 0)
-#define CTRL_BKL_ON	GPIOA->BSRR = 0x00000080
-#define CTRL_BKL_OFF GPIOA->BSRR = 0x00800000
 
 //GPIOA pin8
-#define EXTI_Input ((GPIOA->IDR & 0x0100) != 0)
-#define DMX_INPUT EXTI_Input
+#define ACT ((GPIOA->ODR & 0x0100) != 0)
+#define ACT_ON	GPIOA->BSRR = 0x00000100
+#define ACT_OFF GPIOA->BSRR = 0x01000000
 
 //GPIOA pin9
+
 //GPIOA pin10	usart tx rx
+#define LEDG ((GPIOA->ODR & 0x0400) != 0)
+#define LEDG_ON	GPIOA->BSRR = 0x00000400
+#define LEDG_OFF GPIOA->BSRR = 0x04000000
 
 //GPIOA pin11
-#define RELAY ((GPIOA->ODR & 0x0800) != 0)
-#define RELAY_ON	GPIOA->BSRR = 0x00000800
-#define RELAY_OFF GPIOA->BSRR = 0x08000000
+#define LEDY ((GPIOA->ODR & 0x0800) != 0)
+#define LEDY_ON	GPIOA->BSRR = 0x00000800
+#define LEDY_OFF GPIOA->BSRR = 0x08000000
 
 //GPIOA pin12
-#define SW ((GPIOA->ODR & 0x1000) != 0)
-#define SW_TX	GPIOA->BSRR = 0x00001000
-#define SW_RX GPIOA->BSRR = 0x10000000
+#define LEDR ((GPIOA->ODR & 0x1000) != 0)
+#define LEDR_ON	GPIOA->BSRR = 0x00001000
+#define LEDR_OFF GPIOA->BSRR = 0x10000000
 
 //GPIOA pin13
 //GPIOA pin14
-
 //GPIOA pin15
-#define SW_AC ((GPIOA->IDR & 0x8000) == 0)	//activo por 0
 
 //GPIOB pin0
-
 //GPIOB pin1
-#define S2_PIN ((GPIOB->IDR & 0x0002) == 0)
-
 //GPIOB pin3
-#define S1_PIN ((GPIOB->IDR & 0x0008) == 0)
-
 //GPIOB pin4
 //GPIOB pin5
+#define SYNC ((GPIOB->ODR & 0x0020) != 0)
+#define SYNC_ON	GPIOB->BSRR = 0x00000020
+#define SYNC_OFF GPIOB->BSRR = 0x00200000
 
 //GPIOB pin6
-#define DMX_TX_PIN ((GPIOB->ODR & 0x0040) == 0)
-#define DMX_TX_PIN_OFF	GPIOB->BSRR = 0x00000040
-#define DMX_TX_PIN_ON GPIOB->BSRR = 0x00400000
-
 //GPIOB pin7
-#define LED ((GPIOB->ODR & 0x0080) != 0)
-#define LED_ON	GPIOB->BSRR = 0x00000080
-#define LED_OFF GPIOB->BSRR = 0x00800000
 
-
-
-#define CH_IN_TEMP ADC_Channel_0
-#define LAST_NUMBER		5
-#define LAST_NUMBER_SPEAK		5
-
-//#define DOOR_ROOF	200
-//#define DOOR_THRESH	180
 
 
 //ESTADOS DEL PROGRAMA PRINCIPAL

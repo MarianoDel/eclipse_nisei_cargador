@@ -38,8 +38,6 @@
 void GPIO_Config (void)
 {
 	unsigned long temp;
-	EXTI_InitTypeDef EXTI_InitStructure;
-	NVIC_InitTypeDef NVIC_InitStructure;
 
 
 	//--- MODER ---//
@@ -76,24 +74,23 @@ void GPIO_Config (void)
 
 
 	temp = GPIOA->MODER;	//2 bits por pin
-	temp &= 0x3C000000;		//PA2 - PA3 alternate function; PA6 alternate function; PA7 out push pull; PA8 input; PA11 PA12 out push_pull; PA15 input
-	temp |= 0x016865A5;		//pa2 pa3 pa9 pa10 alternative
-	//temp |= 0x01406555;	//para forzar TX pin
+	temp &= 0xFC0CFC00;		//PA0 - PA4 analog input; PA8 PA10 PA11 PA12 output push pull
+	temp |= 0x015103FF;		//
 	GPIOA->MODER = temp;
 
 	temp = GPIOA->OTYPER;	//1 bit por pin
-	temp &= 0xFFFFE7F0;
-	temp |= 0x00000000;		//PA0 a PA7 push pull; PA11 PA12 push pull
+	temp &= 0xFFFFFEFF;
+	temp |= 0x00000100;		//PA8 open drain
 	GPIOA->OTYPER = temp;
 
 	temp = GPIOA->OSPEEDR;	//2 bits por pin
-	temp &= 0xFC3F00F0;
-	temp |= 0x00000000;		//low speed
+	temp &= 0xFC0CFFFF;
+	temp |= 0x00000000;		//PA8 PA10 PA11 PA12 low speed
 	GPIOA->OSPEEDR = temp;
 
 	temp = GPIOA->PUPDR;	//2 bits por pin
-	temp &= 0x3FFFFFFF;
-	temp |= 0x40000000;		//PA15 con pullup PA2 con pull up
+	temp &= 0xFFFFFFFF;
+	temp |= 0x00000000;		//
 	GPIOA->PUPDR = temp;
 
 	//Alternate Fuction
@@ -169,11 +166,11 @@ void GPIO_Config (void)
 	//EXTI_InitStructure.EXTI_Trigger = EXTI_Trigger_Rising_Falling;
 	//EXTI_InitStructure.EXTI_LineCmd = ENABLE;
 	//EXTI_Init(&EXTI_InitStructure);
-	EXTI_InitStructure.EXTI_Line = EXTI_Line8;
-	EXTI_InitStructure.EXTI_Mode = EXTI_Mode_Interrupt;
-	EXTI_InitStructure.EXTI_Trigger = EXTI_Trigger_Rising_Falling;
-	EXTI_InitStructure.EXTI_LineCmd = ENABLE;
-	EXTI_Init(&EXTI_InitStructure);
+//	EXTI_InitStructure.EXTI_Line = EXTI_Line8;
+//	EXTI_InitStructure.EXTI_Mode = EXTI_Mode_Interrupt;
+//	EXTI_InitStructure.EXTI_Trigger = EXTI_Trigger_Rising_Falling;
+//	EXTI_InitStructure.EXTI_LineCmd = ENABLE;
+//	EXTI_Init(&EXTI_InitStructure);
 
 		//GPIO_EXTILineConfig(GPIO_PortSourceGPIOB, GPIO_PinSource12);
 
@@ -183,11 +180,11 @@ void GPIO_Config (void)
 	//NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0x0F;
 	//NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
 
-	NVIC_InitStructure.NVIC_IRQChannel = EXTI4_15_IRQn;
-	NVIC_InitStructure.NVIC_IRQChannelPriority = 0x0;
-	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
+//	NVIC_InitStructure.NVIC_IRQChannel = EXTI4_15_IRQn;
+//	NVIC_InitStructure.NVIC_IRQChannelPriority = 0x0;
+//	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
 
-	NVIC_Init(&NVIC_InitStructure);
+//	NVIC_Init(&NVIC_InitStructure);
 
 }
 

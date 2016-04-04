@@ -43,9 +43,9 @@
 #include "system_stm32f0xx.h"
 #include "stm32f0xx_it.h"
 
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
+//#include <stdio.h>
+//#include <string.h>
+//#include <stdlib.h>
 
 
 //--- My includes ---//
@@ -66,35 +66,11 @@
 volatile unsigned char timer_1seg = 0;
 
 volatile unsigned short timer_led_comm = 0;
-volatile unsigned short timer_for_cat_switch = 0;
-volatile unsigned short timer_for_cat_display = 0;
 
-// ------- Externals de los USART -------
+// ------- Externals de los Timers -------
 volatile unsigned short wait_ms_var = 0;
-
-
-//volatile unsigned char TxBuffer_SPI [TXBUFFERSIZE];
-//volatile unsigned char RxBuffer_SPI [RXBUFFERSIZE];
-//volatile unsigned char *pspi_tx;
-//volatile unsigned char *pspi_rx;
-//volatile unsigned char spi_bytes_left = 0;
-
-// ------- Externals del DMX -------
-volatile unsigned char Packet_Detected_Flag;
-volatile unsigned char dmx_receive_flag = 0;
-volatile unsigned short DMX_channel_received = 0;
-volatile unsigned short DMX_channel_selected = 1;
-volatile unsigned char DMX_channel_quantity = 4;
-
-volatile unsigned char data1[512];
-//static unsigned char data_back[10];
-volatile unsigned char data[10];
-
-volatile unsigned char orig_shine_slider [120];
-volatile unsigned char orig_shine_room [4];
-
-// ------- Externals de los timers -------
 volatile unsigned short prog_timer = 0;
+
 
 // ------- Externals de los modos -------
 
@@ -179,7 +155,6 @@ int main(void)
 {
 	unsigned char i;
 	unsigned short ii;
-	unsigned char rdm_is_needed = 0;
 
 	//!< At this stage the microcontroller clock setting is already configured,
     //   this is done through SystemInit() function which is called from startup
@@ -196,10 +171,10 @@ int main(void)
 	{
 		while (1)	/* Capture error */
 		{
-			if (LED)
-				LED_OFF;
+			if (LEDR)
+				LEDR_OFF;
 			else
-				LED_ON;
+				LEDR_ON;
 
 			for (i = 0; i < 255; i++)
 			{
@@ -211,26 +186,27 @@ int main(void)
 	}
 
 
-	 //PRUEBA LED Y OE
-	/*
+	 //PRUEBA LEDS
+
 	 while (1)
 	 {
-		 if (LED)
+		 if (LEDG)
 		 {
-//			 CTRL_BKL_ON;
-			 LED_OFF;
+			 LEDG_OFF;
+			 LEDY_OFF;
+			 LEDR_OFF;
 		 }
 		 else
 		 {
-			 LED_ON;
-//			 CTRL_BKL_OFF;
+			 LEDG_ON;
+			 LEDY_ON;
+			 LEDR_ON;
 		 }
 
 		 Wait_ms(150);
 	 }
-	 */
 
-	 //FIN PRUEBA LED Y OE
+	 //FIN PRUEBA LEDS
 
 	//TIM Configuration.
 	TIM_3_Init();
@@ -238,429 +214,28 @@ int main(void)
 	//Timer_3_Init();
 	//Timer_4_Init();
 
-	//--- PRUEBA DISPLAY LCD ---
-	EXTIOff ();
 
-	LED_ON;
+	LEDG_ON;
 	Wait_ms(1000);
-	LED_OFF;
-
-	//DE PRODUCCION Y PARA PRUEBAS EN DMX
-	Packet_Detected_Flag = 0;
-	DMX_channel_selected = 1;
-	DMX_channel_quantity = 4;
-
-
-
-	//RELAY_ON;
-
-	//--- PRUEBA USART
-	/*
-	//EXTIOff();
-	USART_Config();
-	while (1)
-	{
-		DMX_channel_received = 0;
-		data1[0] = 0;
-		data1[1] = 0;
-		data1[2] = 0;
-		dmx_receive_flag = 1;
-		USARTSend('M');
-		USARTSend('E');
-		USARTSend('D');
-		Wait_ms(1);
-		if ((data1[0] == 'M') && (data1[1] == 'E') && (data1[2] == 'D'))
-			LED_ON;
-		else
-			LED_OFF;
-		Wait_ms(200);
-	}
-	*/
-	//--- FIN PRUEBA USART
-
-	//--- PRUEBA USART2
-	/*
-	while(1)	//pruebo pata tx
-	{
-		TX_ON;
-		Wait_ms(10);
-		TX_OFF;
-		Wait_ms(10);
-	}
-	*/
-/*
-	while (1)
-	{
-		//USART1Send('M');
-		//USARTSend('M');
-		USART2Send('M');
-		Wait_ms(1009);
-	}
-*/
-	//--- FIN PRUEBA USART2
+	LEDG_OFF;
 
 
 
 
-	//--- PRUEBA EXTI PA8 con DMX y sw a TX
-	/*
-	while (1)
-	{
-		//cuando tiene DMX mueve el LED
-		EXTIOn();
-		SW_RX;
-		Wait_ms(200);
-		EXTIOff();
-		SW_TX;
-		Wait_ms(200);
-	}
-	*/
-	//--- FIN PRUEBA EXTI PA8 con DMX
 
 
-	//--- PRUEBA CH0 DMX con switch de display	inicializo mas arriba USART y variables
-	/*
-//	DMX_Ena();
-
-	if (ADC_Conf() == 0)
-	{
-		while (1)
-		{
-			if (LED)
-				LED_OFF;
-			else
-				LED_ON;
-
-			Wait_ms(150);
-		}
-	}
-
-	while (1)
-	{
-		if (Packet_Detected_Flag)
-		{
-			//llego un paquete DMX
-			Packet_Detected_Flag = 0;
-
-			//en data tengo la info
-			Update_TIM3_CH1 (data[0]);
-
-			ii = data[0] * 100;
-			ii = ii / 255;
-			if (ii > 100)
-				ii = 100;
-
-			if (last_percent != ii)
-			{
-				last_percent = ii;
-
-				LCD_2DO_RENGLON;
-				LCDTransmitStr((const char *) "            ");
-
-				//Lcd_SetDDRAM(0x40 + 12);
-				sprintf(s_lcd, "%3d", ii);
-				LCDTransmitStr(s_lcd);
-				LCDTransmitStr("%");
-
-				LCD_2DO_RENGLON;
-				for (i = 0; i < last_percent; i=i+10)
-				{
-					LCDStartTransmit(0xff);
-				}
-			}
-		}
-
-		UpdateSwitches ();
-		UpdateIGrid();
-
-	}
-	*/
-	//--- FIN PRUEBA CH0 DMX
-
-	//--- PRUEBA CH0 DMX con switch de display	inicializo mas arriba USART y variables
-	/*
-	if (ADC_Conf() == 0)
-	{
-		while (1)
-		{
-			if (LED)
-				LED_OFF;
-			else
-				LED_ON;
-
-			Wait_ms(150);
-		}
-	}
-
-	//DMX_Disa();
-	while (1)
-	{
-		if (CheckS1() > S_NO)
-		{
-			sw_state = 1;
-		//	RELAY_ON;
-		}
-		else if (CheckS2() > S_NO)
-		{
-			sw_state = 0;
-		//	RELAY_OFF;
-		}
-
-		if (sw_state == 1)		//si tengo que estar prendido
-		{
-			if (Packet_Detected_Flag)
-			{
-				//llego un paquete DMX
-				Packet_Detected_Flag = 0;
-
-				//en data tengo la info
-				Update_TIM3_CH1 (data[0]);
-				//Update_TIM3_CH2 (data[1]);
-				//Update_TIM3_CH3 (data[2]);
-				//Update_TIM3_CH4 (data[3]);
-				sprintf(s_lcd, "%03d", data[0]);
-				LCD_2DO_RENGLON;
-				LCDTransmitStr(s_lcd);
-				sprintf(s_lcd, "  %04d", GetIGrid());
-				LCDTransmitStr(s_lcd);
-			}
-
-			if (!timer_standby)
-			{
-				timer_standby = 1000;
-				sprintf(s_lcd, "%03d", ii);
-				LCD_1ER_RENGLON;
-				LCDTransmitStr(s_lcd);
-				if (ii < 255)
-					ii++;
-				else
-					ii = 0;
-			}
-		}
-		else	//apago los numeros
-		{
-			if (sw_state == 0)
-			{
-				LCD_2DO_RENGLON;
-				LCDTransmitStr((const char *) "                ");
-				sw_state = 2;
-			}
-		}
-
-		UpdateSwitches ();
-		UpdateIGrid();
-
-	}
-	*/
-	//--- FIN PRUEBA CH0 DMX
-
-	//--- PRUEBA DMX cuento paquetes
-/*
-	LCD_1ER_RENGLON;
-	LCDTransmitStr((const char *) "Paquete numero: ");
-	LCD_2DO_RENGLON;
-	LCDTransmitStr((const char *) "                ");
-	ii = 0;
-	DMX_Ena();
-	//DMX_Disa();
-	while (1)
-	{
-		if (Packet_Detected_Flag)
-		{
-			Packet_Detected_Flag = 0;
-			if (ii < 65532)
-				ii++;
-			else
-				ii = 0;
-
-			sprintf(s_lcd, "%d", ii);
-			LCD_2DO_RENGLON;
-			LCDTransmitStr(s_lcd);
-		}
-
-		UpdateSwitches ();
-
-	}
-*/
-	//--- FIN PRUEBA DMX cuento paquetes
-
-	//--- PRUEBA CH0 con SW_AC modo STAND_ALONE
-	/*
-	Wait_ms(3000);
-	LCD_1ER_RENGLON;
-	LCDTransmitStr((const char *) "  Lights OFF    ");
-	LCD_2DO_RENGLON;
-	LCDTransmitStr((const char *) "  PLANOLUX LLC  ");
-
-	RELAY_ON;
-
-	if (ADC_Conf() == 0)
-	{
-		while (1)
-		{
-			if (LED)
-				LED_OFF;
-			else
-				LED_ON;
-
-			Wait_ms(150);
-		}
-	}
-
-	Update_TIM3_CH1 (0);
-	sw_state = 1;
-	while (1)
-	{
-		switch (sw_state)
-		{
-			case 1:
-				if (CheckACSw() > S_NO)
-					sw_state = 2;
-
-				break;
-
-			case 2:
-				if (CheckACSw() > S_HALF)
-					sw_state = 10;
-
-				if (CheckACSw() == S_NO)
-					sw_state = 3;
-
-				break;
-
-			case 3:	//aca lo prendo
-				LCD_1ER_RENGLON;
-				LCDTransmitStr((const char *) "Switching ON... ");
-				ii = 51;
-				sw_state++;
-				break;
-
-			case 4:	//filtro de subida
-				if (!timer_standby)
-				{
-					timer_standby = 20;
-					if (ii < 255)
-					{
-						Update_TIM3_CH1 (ii);
-						ii++;
-					}
-					else
-					{
-						Update_TIM3_CH1 (255);
-						LCD_1ER_RENGLON;
-						LCDTransmitStr((const char *) "  Lights ON     ");
-						sw_state = 5;
-					}
-				}
-				break;
-
-			case 5:	//aca me trabo prendido
-				if (CheckACSw() > S_NO)
-					sw_state = 6;
-
-				break;
-
-			case 6:
-				if (CheckACSw() > S_HALF)
-					sw_state = 10;
-
-				if (CheckACSw() == S_NO)
-					sw_state = 7;
-
-				break;
-
-			case 7:	//aca lo apago
-				LCD_1ER_RENGLON;
-				LCDTransmitStr((const char *) "Switching OFF...");
-				ii = 255;
-				sw_state++;
-				break;
-
-			case 8:	//filtro de bajada
-				if (!timer_standby)
-				{
-					timer_standby = 20;
-					if (ii > 0)
-					{
-						Update_TIM3_CH1 (ii);
-						ii--;
-					}
-					else
-					{
-						Update_TIM3_CH1 (0);
-						sw_state = 1;
-						LCD_1ER_RENGLON;
-						LCDTransmitStr((const char *) "  Lights OFF    ");
-					}
-				}
-				break;
-
-			case 10:
-				break;
-
-		}
-		UpdateSwitches ();
-		UpdateIGrid();
-		UpdateACSwitch();
-
-	}
-	*/
-	//--- FIN PRUEBA CH0 con SW_AC modo STAND_ALONE
-
-	//--- PRUEBA ONE SHOOT TIMER 16
-	/*
-	DMX_TX_PIN_OFF;
-	SW_TX;
-	TIM_16_Init();
-	LED_OFF;
-	ii = 0;
-
-	while (1)
-	{
-		if (!timer_standby)
-		{
-			timer_standby = 40;	//transmito cada 40ms
-
-			if (ii == 0)
-			{
-				DMX_TX_PIN_ON;
-				OneShootTIM16(1000);
-				ii = 1;
-			}
-			else
-			{
-				DMX_TX_PIN_ON;
-				OneShootTIM16(4000);
-				ii = 0;
-			}
-		}
-	}
-	*/
-	//--- FIN PRUEBA ONE SHOOT TIMER 16
-
-	//--- PRUEBA DMX SOLO PAQUETE
-	/*
-	while (1)
-	{
-		if (!timer_standby)		//mando paquete DMX cada 25ms
-		{
-			timer_standby = 25;	//transmito cada 25ms
-			UsartSendDMX ();
-			//USART1Send('M');
-		}
-	}
-	*/
-	//--- FIN PRUEBA DMX SOLO PAQUETE
-
-	//--- PRUEBA HARDWARE DE MASTER EN CH0 DMX inicializo mas arriba USART y variables
 
 
-	//--- FIN PRUEBA HARDWARE MASTER CH0 DMX
+
+
+
+
+
+
+
 
 	return 0;
 }
-
-
 //--- End of Main ---//
 
 
@@ -829,93 +404,6 @@ unsigned short MAFilter16 (unsigned char new_sample, unsigned char * vsample)
     return total_ma >> DIVISOR_F;
 }
 
-
-
-
-
-void EXTI4_15_IRQHandler(void)
-{
-	unsigned short aux;
-
-
-	if(EXTI->PR & 0x0100)	//Line8
-	{
-
-		//si no esta con el USART detecta el flanco	PONER TIMEOUT ACA?????
-		if ((dmx_receive_flag == 0) || (dmx_timeout_timer == 0))
-		//if (dmx_receive_flag == 0)
-		{
-			switch (signal_state)
-			{
-				case IDLE:
-					if (!(DMX_INPUT))
-					{
-						//Activo timer en Falling.
-						TIM14->CNT = 0;
-						TIM14->CR1 |= 0x0001;
-						signal_state++;
-					}
-					break;
-
-				case LOOK_FOR_BREAK:
-					if (DMX_INPUT)
-					{
-						//Desactivo timer en Rising.
-						aux = TIM14->CNT;
-
-						//reviso BREAK
-						//if (((tim_counter_65ms) || (aux > 88)) && (tim_counter_65ms <= 20))
-						if ((aux > 87) && (aux < 210))	//Consola STARLET 6
-						//if ((aux > 87) && (aux < 2000))		//Consola marca CODE tiene break 1.88ms
-						{
-							LED_ON;
-							//Activo timer para ver MARK.
-							//TIM2->CNT = 0;
-							//TIM2->CR1 |= 0x0001;
-
-							signal_state++;
-							//tengo el break, activo el puerto serie
-							DMX_channel_received = 0;
-							//dmx_receive_flag = 1;
-
-							dmx_timeout_timer = DMX_TIMEOUT;		//activo el timer cuando prendo el puerto serie
-							//USARTx_RX_ENA;
-						}
-						else	//falso disparo
-							signal_state = IDLE;
-					}
-					else	//falso disparo
-						signal_state = IDLE;
-
-					TIM14->CR1 &= 0xFFFE;
-					break;
-
-				case LOOK_FOR_MARK:
-					if ((!(DMX_INPUT)) && (dmx_timeout_timer))	//termino Mark after break
-					{
-						//ya tenia el serie habilitado
-						//if ((aux > 7) && (aux < 12))
-						dmx_receive_flag = 1;
-					}
-					else	//falso disparo
-					{
-						//termine por timeout
-						dmx_receive_flag = 0;
-						//USARTx_RX_DISA;
-					}
-					signal_state = IDLE;
-					LED_OFF;
-					break;
-
-				default:
-					signal_state = IDLE;
-					break;
-			}
-		}
-
-		EXTI->PR |= 0x0100;
-	}
-}
 
 void TimingDelay_Decrement(void)
 {
