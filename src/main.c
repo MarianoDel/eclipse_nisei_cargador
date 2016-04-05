@@ -17,7 +17,7 @@
 /* Includes ------------------------------------------------------------------*/
 #include "stm32f0xx.h"
 #include "stm32f0xx_conf.h"
-//#include "stm32f0xx_adc.h"
+#include "stm32f0xx_adc.h"
 //#include "stm32f0xx_can.h"
 //#include "stm32f0xx_cec.h"
 //#include "stm32f0xx_comp.h"
@@ -71,7 +71,7 @@ volatile unsigned char timer_1seg = 0;
 volatile unsigned short timer_led_comm = 0;
 
 // ------- Externals del Adc -------
-volatile unsigned short adc_ch [4];
+volatile unsigned short adc_ch [5];
 volatile unsigned char need_to_sync;
 volatile unsigned char freq_ready;
 volatile unsigned short lastC0V;
@@ -135,7 +135,6 @@ unsigned char vd4 [LARGO_F + 1];
 
 
 //--- FUNCIONES DEL MODULO ---//
-void Delay(__IO uint32_t nTime);
 void TimingDelay_Decrement(void);
 void DMAConfig(void);
 
@@ -170,6 +169,7 @@ int main(void)
 {
 	unsigned char i;
 	unsigned short ii;
+	unsigned char onsync = 0;
 
 	//!< At this stage the microcontroller clock setting is already configured,
     //   this is done through SystemInit() function which is called from startup
@@ -202,7 +202,7 @@ int main(void)
 
 
 	 //PRUEBA LEDS
-
+	/*
 	 while (1)
 	 {
 		 if (LEDG)
@@ -220,11 +220,11 @@ int main(void)
 
 		 Wait_ms(150);
 	 }
-
+	*/
 	 //FIN PRUEBA LEDS
 
 	//TIM Configuration.
-	TIM_3_Init();
+	TIM_1_Init();
 	TIM_14_Init();
 	//Timer_3_Init();
 	//Timer_4_Init();
@@ -242,7 +242,7 @@ int main(void)
 
 
 	//--- Prueba ADC y DMA ---//
-	/*
+
 	while(1)
 	{
 		//busco sync con DMA
@@ -251,16 +251,17 @@ int main(void)
 			ADC1->ISR |= ADC_IT_EOC;
 			onsync = 1;
 			DMA1_Channel1->CCR |= DMA_CCR_EN;
+			LEDG_ON;
 		}
 
 		//me fijo si hubo overrun
 		if (ADC1->ISR & ADC_IT_OVR)
 		{
 			ADC1->ISR |= ADC_IT_EOC | ADC_IT_EOSEQ | ADC_IT_OVR;
-			if (LED2)
-				LED2_OFF;
+			if (LEDY)
+				LEDY_OFF;
 			else
-				LED2_ON;
+				LEDY_ON;
 		}
 
 		if (DMA1->ISR & DMA1_FLAG_TC1)
@@ -268,12 +269,17 @@ int main(void)
 		    // Clear DMA TC flag
 			DMA1->IFCR = DMA1_FLAG_TC1;
 
-			LED1_ON;
-			Update_TIM1_CH2 (V_GRID_SENSE >> 2);
-			LED1_OFF;
+			//LED1_ON;
+			//Update_TIM1_CH2 (V_GRID_SENSE >> 2);
+			//LED1_OFF;
+			if (LEDR)
+				LEDR_OFF;
+			else
+				LEDR_ON;
+
 		}
 	}
-	*/
+
 	//--- Fin Prueba ADC y DMA ---//
 
 
@@ -389,18 +395,6 @@ void UpdateDMX (unsigned char * pckt, unsigned short ch, unsigned char val)
 		*(pckt + ch) = val;
 }
 
-/**
-  * @brief  Inserts a delay time.
-  * @param  nTime: specifies the delay time length, in milliseconds.
-  * @retval None
-  */
-void Delay(__IO uint32_t nTime)
-{
-  TimingDelay = nTime;
-
-  while(TimingDelay != 0);
-}
-
 /*
 unsigned short Get_Temp (void)
 {
@@ -462,11 +456,6 @@ unsigned short MAFilter16 (unsigned char new_sample, unsigned char * vsample)
 
 void TimingDelay_Decrement(void)
 {
-	if (TimingDelay != 0x00)
-	{
-		TimingDelay--;
-	}
-
 	if (wait_ms_var)
 		wait_ms_var--;
 
@@ -521,7 +510,7 @@ void DMAConfig(void)
 	DMA1_Channel1->CCR |= DMA_Mode_Circular;
 
 	//Tamaño del buffer a transmitir
-	DMA1_Channel1->CNDTR = 4;
+	DMA1_Channel1->CNDTR = 5;
 
 	//Address del periferico
 	DMA1_Channel1->CPAR = (uint32_t) &ADC1->DR;

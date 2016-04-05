@@ -48,12 +48,9 @@
 #define RCC_TIM17_CLK_ON 	RCC->APB2ENR |= 0x00040000
 #define RCC_TIM17_CLK_OFF 	RCC->APB2ENR &= ~0x00040000
 
-#define Timer_1_Init() TIM_3_Init()
-#define Timer_2_Init() TIM_14_Init()
-#define Timer_3_Init() TIM_6_Init()
-#define Timer_4_Init() TIM_17_Init()
 
 //--- Exported functions ---//
+void TIM_1_Init (void);
 void TIM3_IRQHandler (void);
 void TIM_3_Init(void);
 void TIM_6_Init (void);

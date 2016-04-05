@@ -65,6 +65,52 @@ void Wait_ms (unsigned short wait)
 // @param  None
 // @retval None
 //------------------------------------------//
+
+void TIM_1_Init (void)
+{
+	unsigned int temp = 0;
+
+	if (!RCC_TIM1_CLK)
+		RCC_TIM1_CLK_ON;
+
+	//Configuracion del timer.
+	//TIM1->CR1 |= TIM_CR1_OPM;		//clk int / 1; upcounting; one pulse
+	TIM1->CR1 = 0x00;		//clk int / 1;
+	TIM1->CR2 |= TIM_CR2_MMS_1;		//UEV -> TRG0
+	//TIM1->CR2 = 0x00;
+	//TIM1->SMCR |= TIM_SMCR_MSM | TIM_SMCR_SMS_2 | TIM_SMCR_SMS_1 | TIM_SMCR_TS_1;	//link timer3
+	TIM1->SMCR = 0x0000;
+	TIM1->CCMR1 = 0x0000;			//no channels
+	TIM1->CCMR2 = 0x0000;			//no channels
+
+	//TIM1->CCER |= TIM_CCER_CC2E | TIM_CCER_CC3E;
+	//TIM1->BDTR |= TIM_BDTR_MOE;
+
+	TIM1->PSC = 11;		//24MHz
+	TIM1->ARR = 1023;	//each tick 41.66ns
+
+	TIM1->CNT = 0;
+
+	//Configuracion Pines
+	//Alternate Fuction
+	//temp = GPIOA->MODER;	//2 bits por pin
+	//temp &= 0xFFC3FFFF;		//PA9 y PA10 (alternative)
+	//temp |= 0x00280000;
+	//GPIOA->MODER = temp;
+
+	//GPIOA->AFR[1] = 0x0000220;	//PA10 -> AF2; PA9 -> AF2
+
+	// Enable timer ver UDIS
+	//TIM1->DIER |= TIM_DIER_UIE;
+	TIM1->CR1 |= TIM_CR1_CEN;
+
+	//TIM1->CCR1 = 0;
+	//TIM1->CCR2 = 0;
+	//TIM1->CCR3 = 0;
+	//TIM1->CCR4 = 0;
+}
+
+
 void TIM3_IRQHandler (void)	//1 ms
 {
 	/*
