@@ -16,7 +16,7 @@
 #define ADC_CH1		0x00000002
 #define ADC_CH2		0x00000004
 
-unsigned short ADC_Conf (void);
+void AdcConfig (void);
 unsigned short ReadADC1 (unsigned int);
 unsigned short ReadADC1_SameSampleTime (unsigned int);
 void SetADC1_SampleTime (void);

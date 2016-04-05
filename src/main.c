@@ -51,6 +51,9 @@
 //--- My includes ---//
 #include "stm32f0x_gpio.h"
 #include "stm32f0x_tim.h"
+#include "dsp.h"
+#include "stm32f0xx_dma.h"
+
 
 #include "hard.h"
 //#include "main.h"
@@ -66,6 +69,15 @@
 volatile unsigned char timer_1seg = 0;
 
 volatile unsigned short timer_led_comm = 0;
+
+// ------- Externals del Adc -------
+volatile unsigned short adc_ch [4];
+volatile unsigned char need_to_sync;
+volatile unsigned char freq_ready;
+volatile unsigned short lastC0V;
+volatile unsigned char zero_cross = 0;
+
+volatile unsigned char seq_ready = 0;
 
 // ------- Externals de los Timers -------
 volatile unsigned short wait_ms_var = 0;
@@ -117,10 +129,15 @@ unsigned char vd4 [LARGO_F + 1];
 #define LOOK_FOR_MARK	2
 #define LOOK_FOR_START	3
 
+#define RCC_DMA_CLK (RCC->AHBENR & RCC_AHBENR_DMAEN)
+#define RCC_DMA_CLK_ON 		RCC->AHBENR |= RCC_AHBENR_DMAEN
+#define RCC_DMA_CLK_OFF 	RCC->AHBENR &= ~RCC_AHBENR_DMAEN
+
+
 //--- FUNCIONES DEL MODULO ---//
 void Delay(__IO uint32_t nTime);
 void TimingDelay_Decrement(void);
-
+void DMAConfig(void);
 
 void Update_PWM (unsigned short);
 
@@ -130,8 +147,6 @@ unsigned short GetValue (unsigned char * );
 
 
 
-// ------- del DMX -------
-extern void EXTI4_15_IRQHandler(void);
 #define DMX_TIMEOUT	20
 unsigned char MAFilter (unsigned char, unsigned char *);
 
@@ -214,12 +229,52 @@ int main(void)
 	//Timer_3_Init();
 	//Timer_4_Init();
 
-
 	LEDG_ON;
 	Wait_ms(1000);
 	LEDG_OFF;
 
+	//ADC configuration.
+	AdcConfig();
+	ADC1->CR |= ADC_CR_ADSTART;
 
+	//DMA configuration.
+	DMAConfig();
+
+
+	//--- Prueba ADC y DMA ---//
+	/*
+	while(1)
+	{
+		//busco sync con DMA
+		if ((!onsync) && (ADC1->ISR & ADC_IT_EOC))
+		{
+			ADC1->ISR |= ADC_IT_EOC;
+			onsync = 1;
+			DMA1_Channel1->CCR |= DMA_CCR_EN;
+		}
+
+		//me fijo si hubo overrun
+		if (ADC1->ISR & ADC_IT_OVR)
+		{
+			ADC1->ISR |= ADC_IT_EOC | ADC_IT_EOSEQ | ADC_IT_OVR;
+			if (LED2)
+				LED2_OFF;
+			else
+				LED2_ON;
+		}
+
+		if (DMA1->ISR & DMA1_FLAG_TC1)
+		{
+		    // Clear DMA TC flag
+			DMA1->IFCR = DMA1_FLAG_TC1;
+
+			LED1_ON;
+			Update_TIM1_CH2 (V_GRID_SENSE >> 2);
+			LED1_OFF;
+		}
+	}
+	*/
+	//--- Fin Prueba ADC y DMA ---//
 
 
 
@@ -453,5 +508,29 @@ void TimingDelay_Decrement(void)
 }
 
 
+void DMAConfig(void)
+{
+	/* DMA1 clock enable */
+	if (!RCC_DMA_CLK)
+		RCC_DMA_CLK_ON;
+
+	//Configuro el control del DMA CH1
+	DMA1_Channel1->CCR = 0;
+	DMA1_Channel1->CCR |= DMA_Priority_VeryHigh | DMA_MemoryDataSize_HalfWord | DMA_PeripheralDataSize_HalfWord | DMA_MemoryInc_Enable;
+	//DMA1_Channel1->CCR |= DMA_Mode_Circular | DMA_CCR_TCIE;
+	DMA1_Channel1->CCR |= DMA_Mode_Circular;
+
+	//Tamaño del buffer a transmitir
+	DMA1_Channel1->CNDTR = 4;
+
+	//Address del periferico
+	DMA1_Channel1->CPAR = (uint32_t) &ADC1->DR;
+
+	//Address en memoria
+	DMA1_Channel1->CMAR = (uint32_t) &adc_ch[0];
+
+	//Enable
+	//DMA1_Channel1->CCR |= DMA_CCR_EN;
+}
 
 
