@@ -105,23 +105,23 @@ void GPIO_Config (void)
 		GPIOB_CLK_ON;
 
 	temp = GPIOB->MODER;	//2 bits por pin
-	temp &= 0xFFFF0F30;		//PB0 analog input; PB1 PB3 input PB6 PB7 output
-	temp |= 0x00005003;
+	temp &= 0xFFFFF3FF;		//PB5 output
+	temp |= 0x00000400;
 	GPIOB->MODER = temp;
 
 	temp = GPIOB->OTYPER;	//1 bit por pin
-	temp &= 0xFFFFFF3F;
-	temp |= 0x00000040;		//PB6 open drain PB7 push pull
+	temp &= 0xFFFFFFFF;
+	temp |= 0x00000000;
 	GPIOB->OTYPER = temp;
 
 	temp = GPIOB->OSPEEDR;	//2 bits por pin
-	temp &= 0xFFFF0FFF;
-	temp |= 0x00000000;		//low speed
+	temp &= 0xFFFFF3FF;
+	temp |= 0x00000000;		//PB5 low speed
 	GPIOB->OSPEEDR = temp;
 
 	temp = GPIOB->PUPDR;	//2 bits por pin
-	temp &= 0xFFFFFF33;		//PB1 PB3 pull up
-	temp |= 0x00000044;
+	temp &= 0xFFFFFFFF;
+	temp |= 0x00000000;
 	GPIOB->PUPDR = temp;
 
 	//Alternate Fuction
