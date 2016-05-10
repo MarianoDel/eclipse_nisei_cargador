@@ -91,33 +91,34 @@ volatile unsigned short msecs = 0;
 // ------- de los filtros de mediciones -------
 #define LARGO_F		32
 #define DIVISOR_F	5
-unsigned char vd0 [LARGO_F + 1];
-unsigned char vd1 [LARGO_F + 1];
-unsigned char vd2 [LARGO_F + 1];
-unsigned char vd3 [LARGO_F + 1];
-unsigned char vd4 [LARGO_F + 1];
+unsigned short vd0 [LARGO_F];
+unsigned short vd1 [LARGO_F];
+unsigned short vd2 [LARGO_F];
+unsigned short vd3 [LARGO_F];
+unsigned short vd4 [LARGO_F];
+#define VIN_VECTOR			vd0
+#define VBAT_VECTOR			vd1
+#define IPEAK_VECTOR		vd2
+#define TEMP_VECTOR			vd3
+#define VSETLOAD_VECTOR		vd4
+
+unsigned char filter_index = 0;
 
 
 #define RCC_DMA_CLK (RCC->AHBENR & RCC_AHBENR_DMAEN)
 #define RCC_DMA_CLK_ON 		RCC->AHBENR |= RCC_AHBENR_DMAEN
 #define RCC_DMA_CLK_OFF 	RCC->AHBENR &= ~RCC_AHBENR_DMAEN
 
-//--- FILTROS DE SENSORES ---//
-#define LARGO_FILTRO 16
-#define DIVISOR      4   //2 elevado al divisor = largo filtro
-//#define LARGO_FILTRO 32
-//#define DIVISOR      5   //2 elevado al divisor = largo filtro
-unsigned short vtemp [LARGO_FILTRO + 1];
-unsigned short vpote [LARGO_FILTRO + 1];
-
-//--- FIN DEFINICIONES DE FILTRO ---//
 
 
 //--- FUNCIONES DEL MODULO ---//
-void DMAConfig(void);
-unsigned char MAFilter (unsigned char, unsigned char *);
+void DMAConfig (void);
 unsigned char CheckPolarity (void);
 unsigned char CheckVoltageMin (void);
+unsigned short GetVBAT (void);
+unsigned short GetTEMP (void);
+unsigned short GetVSETLOAD (void);
+void UpdateFilters (void);
 
 
 //-------------------------------------------//
@@ -130,6 +131,7 @@ int main(void)
 	unsigned char i;
 	unsigned char onsync = 0;
 	enum var_main_states main_state = MAIN_STANDBY;
+	unsigned short vbat_local = 0;
 
 	//!< At this stage the microcontroller clock setting is already configured,
     //   this is done through SystemInit() function which is called from startup
@@ -296,7 +298,8 @@ int main(void)
 			{
 				case MAIN_STANDBY:
 					//si tengo bateria conectada y necesita carga, lo hago
-					if ((CheckVBAT() > VBAT_MIN_SET) && (CheckVBAT() < VSETLOAD))
+					vbat_local = GetVBAT();
+					if ((vbat_local > VBAT_MIN_SET) && (vbat_local < VSETLOAD))
 					{
 						//empiezo a cargar siempre en SYNC
 						if (onsync)
@@ -319,7 +322,9 @@ int main(void)
 						break;
 					}
 
-					if (CheckVBAT() > VSETLOAD)		//cuento 60 segs y vuelvo a standby
+					vbat_local = GetVBAT();
+
+					if (vbat_local > VSETLOAD)		//cuento 60 segs y vuelvo a standby
 					{
 						MOSFET_OFF;
 						secs++;
@@ -337,7 +342,7 @@ int main(void)
 							secs--;
 					}
 
-					if (CheckVBAT() > VBAT_MIN_SET)
+					if (vbat_local > VBAT_MIN_SET)
 					{
 						MOSFET_OFF;
 						LEDY_OFF;
@@ -379,6 +384,7 @@ int main(void)
 			}
 
 			//----- Verificaciones comunes a todos los casos -----//
+
 			//verifico polaridad y tension minima
 			if (main_state < MAIN_ERROR_IPEAK)
 			{
@@ -408,6 +414,7 @@ int main(void)
 		}
 
 		//Resuelvo cuestiones que no tengan que ver con las muestras
+		UpdateFilters();
 
 		//muestro el led de error segun error_state
 		UpdateErrors();
@@ -437,6 +444,81 @@ unsigned char CheckVoltageMin (void)
 		return RESP_NO;
 }
 
+unsigned short GetVBAT (void)
+{
+
+#if (LARGO_F == 32)
+	return MAFilter32New(VBAT_VECTOR);
+#endif
+
+#if (LARGO_F == 16)
+	return MAFilter16New(VBAT);
+#endif
+
+#if (LARGO_F == 8)
+	return MAFilter8New(VBAT);
+#endif
+
+}
+
+unsigned short GetTEMP (void)
+{
+
+#if (LARGO_F == 32)
+	return MAFilter32New(TEMP_VECTOR);
+#endif
+
+#if (LARGO_F == 16)
+	return MAFilter16New(VBAT);
+#endif
+
+#if (LARGO_F == 8)
+	return MAFilter8New(VBAT);
+#endif
+
+}
+
+unsigned short GetVSETLOAD (void)
+{
+
+#if (LARGO_F == 32)
+	return MAFilter32New(VSETLOAD_VECTOR);
+#endif
+
+#if (LARGO_F == 16)
+	return MAFilter16New(VBAT);
+#endif
+
+#if (LARGO_F == 8)
+	return MAFilter8New(VBAT);
+#endif
+
+}
+
+void UpdateFilters (void)
+{
+	if (filter_index < LARGO_F)
+	{
+		vd0 [filter_index] = adc_ch[0];
+		vd1 [filter_index] = adc_ch[1];
+		vd2 [filter_index] = adc_ch[2];
+		vd3 [filter_index] = adc_ch[3];
+		vd4 [filter_index] = adc_ch[4];
+
+		filter_index++;
+	}
+	else
+	{
+		vd0 [0] = adc_ch[0];
+		vd1 [0] = adc_ch[1];
+		vd2 [0] = adc_ch[2];
+		vd3 [0] = adc_ch[3];
+		vd4 [0] = adc_ch[4];
+
+		filter_index = 0;
+	}
+}
+
 /*
 unsigned short Get_Temp (void)
 {
@@ -457,6 +539,7 @@ unsigned short Get_Temp (void)
 }
 */
 
+/*
 unsigned char MAFilter (unsigned char new_sample, unsigned char * vsample)
 {
 	unsigned short total_ma;
@@ -494,7 +577,7 @@ unsigned short MAFilter16 (unsigned char new_sample, unsigned char * vsample)
 
     return total_ma >> DIVISOR_F;
 }
-
+*/
 
 void TimingDelay_Decrement(void)
 {

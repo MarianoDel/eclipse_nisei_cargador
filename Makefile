@@ -109,8 +109,7 @@ SRC += .\src\stm32f0x_tim.c
 SRC += .\src\adc.c
 #SRC += .\src\stm32f0x_uart.c
 SRC += .\src\flash_program.c
-
-#SRC += .\src\synchro.c
+SRC += .\src\dsp.c
 #SRC += .\src\dmx_transceiver.c
 SRC += .\src\hard.c
 ## System Support
