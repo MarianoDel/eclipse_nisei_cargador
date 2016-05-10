@@ -76,6 +76,8 @@ volatile unsigned short timer_led_error = 0;
 // ------- de los timers -------
 volatile unsigned short timer_standby;
 volatile unsigned char filter_timer;
+volatile unsigned short secs = 0;
+volatile unsigned short msecs = 0;
 
 
 
@@ -95,10 +97,6 @@ unsigned char vd2 [LARGO_F + 1];
 unsigned char vd3 [LARGO_F + 1];
 unsigned char vd4 [LARGO_F + 1];
 
-#define IDLE	0
-#define LOOK_FOR_BREAK	1
-#define LOOK_FOR_MARK	2
-#define LOOK_FOR_START	3
 
 #define RCC_DMA_CLK (RCC->AHBENR & RCC_AHBENR_DMAEN)
 #define RCC_DMA_CLK_ON 		RCC->AHBENR |= RCC_AHBENR_DMAEN
@@ -119,6 +117,7 @@ unsigned short vpote [LARGO_FILTRO + 1];
 void DMAConfig(void);
 unsigned char MAFilter (unsigned char, unsigned char *);
 unsigned char CheckPolarity (void);
+unsigned char CheckVoltageMin (void);
 
 
 //-------------------------------------------//
@@ -205,7 +204,7 @@ int main(void)
 	//FIN PRUEBA SYNC
 
 	//PRUEBA ERRORES
-
+	/*
 	onsync = 0;
 	while (1)
 	{
@@ -244,7 +243,7 @@ int main(void)
 		}
 		UpdateErrors();
 	}
-
+	*/
 	//FIN PRUEBA ERRORES
 
 	//TIM Configuration.
@@ -293,31 +292,66 @@ int main(void)
 		    // Clear DMA TC flag
 			DMA1->IFCR = DMA1_FLAG_TC1;
 
-
-			//reviso no pasrme de corriente si estoy en SYNC
-			if ((IPEAK > PEAK_CURRENT_SET) && (SYNC))
-			{
-
-			}
-
 			switch (main_state)
 			{
 				case MAIN_STANDBY:
-					if (CheckPolarity() == RESP_YES)
+					//si tengo bateria conectada y necesita carga, lo hago
+					if ((CheckVBAT() > VBAT_MIN_SET) && (CheckVBAT() < VSETLOAD))
+					{
+						//empiezo a cargar siempre en SYNC
+						if (onsync)
+						{
+							main_state = MAIN_CHARGING;
+							MOSFET_ON;
+							LEDY_ON;
+						}
+					}
+					break;
+
+				case MAIN_CHARGING:
+					//reviso no pasarme de corriente si estoy con el mosfet activo
+					if ((IPEAK > PEAK_CURRENT_SET) && (MOSFET))
 					{
 						MOSFET_OFF;
-						main_state = MAIN_ERROR_VBAT;
-						ErrorCommands(ERROR_VBAT);
-						timer_standby = TT_ERROR_VBAT;
+						LEDY_OFF;
+						ErrorCommands(ERROR_IPEAK);
+						main_state = MAIN_ERROR_IPEAK;
 						break;
+					}
+
+					if (CheckVBAT() > VSETLOAD)		//cuento 60 segs y vuelvo a standby
+					{
+						MOSFET_OFF;
+						secs++;
+
+						if (secs > TT_CHARGING)
+							main_state = MAIN_STANDBY;
+					}
+					else
+					{
+						//prendo mosfet siempre onsync
+						if (onsync)
+							MOSFET_ON;
+
+						if (secs)
+							secs--;
+					}
+
+					if (CheckVBAT() > VBAT_MIN_SET)
+					{
+						MOSFET_OFF;
+						LEDY_OFF;
+						ErrorCommands(ERROR_VBAT);
+						main_state = MAIN_ERROR_VBAT;
+						timer_standby = TT_ERROR_VBAT;
 					}
 
 					break;
 
-				case MAIN_CHARGING:
-					break;
-
 				case MAIN_ERROR_IPEAK:
+					//a diferencia de otros casos reestablezco al toque el error
+					ErrorCommands(ERROR_NO);
+					main_state = MAIN_STANDBY;
 					break;
 
 				case MAIN_ERROR_VIN:
@@ -331,6 +365,8 @@ int main(void)
 							ErrorCommands(ERROR_NO);
 							main_state = MAIN_STANDBY;
 						}
+						else
+							timer_standby = TT_ERROR_VBAT;
 					}
 					break;
 
@@ -341,11 +377,33 @@ int main(void)
 					main_state = MAIN_STANDBY;
 					break;
 			}
+
+			//----- Verificaciones comunes a todos los casos -----//
+			//verifico polaridad y tension minima
+			if (main_state < MAIN_ERROR_IPEAK)
+			{
+				if ((CheckPolarity() == RESP_YES) || (CheckVoltageMin() == RESP_YES))
+				{
+					MOSFET_OFF;
+					main_state = MAIN_ERROR_VBAT;
+					ErrorCommands(ERROR_VBAT);
+					timer_standby = TT_ERROR_VBAT;
+				}
+			}
+
 			//Verifico fase con ADC
-			if (VIN > 100)
+			if (VIN > VOLTAGE_SYNC_ON)
+			{
+				if ((!onsync) && (!SYNC))
+					onsync = 1;
+				else
+					onsync = 0;
+
 				SYNC_ON;
-			else if (VIN < 50)
+			}
+			else if (VIN < VOLTAGE_SYNC_OFF)
 				SYNC_OFF;
+
 
 		}
 
@@ -365,7 +423,15 @@ int main(void)
 unsigned char CheckPolarity (void)
 {
 	//reviso el ultimo valor de VBAT
-	if (VBAT < 2048)	//debe ser tension negativa en la bateria
+	if (VBAT < VOLTAGE_ZERO)	//debe ser tension negativa en la bateria
+		return RESP_YES;
+	else
+		return RESP_NO;
+}
+
+unsigned char CheckVoltageMin (void)
+{
+	if (VBAT < VOLTAGE_MIN)
 		return RESP_YES;
 	else
 		return RESP_NO;
@@ -444,6 +510,13 @@ void TimingDelay_Decrement(void)
 	if (timer_led_error)
 		timer_led_error--;
 
+	if (msecs < 1000)
+		msecs++;
+	else
+	{
+		msecs = 0;
+		secs++;
+	}
 }
 
 

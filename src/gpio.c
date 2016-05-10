@@ -93,8 +93,8 @@ void GPIO_Config (void)
 	//Alternate Fuction
 	//en algunos perifericos necesito primero mandar el clk y luego la funciona alternativa
 	//como USART2
-	GPIOA->AFR[0] = 0x00001100;	//PA3 -> AF1; PA2 -> AF1
-	GPIOA->AFR[1] = 0x00000110;	//PA10 -> AF1; PA9 -> AF1
+	//GPIOA->AFR[0] = 0x00001100;	//PA3 -> AF1; PA2 -> AF1
+	//GPIOA->AFR[1] = 0x00000110;	//PA10 -> AF1; PA9 -> AF1
 
 #endif
 

@@ -18,7 +18,7 @@ unsigned char error_bips_counter = 0;
 
 
 // ------- Funciones del Modulo -------
-void UpdateErrors (void)	//TODO: mejorar mismo error y primer bip
+void UpdateErrors (void)
 {
 	switch (error_state)
 	{

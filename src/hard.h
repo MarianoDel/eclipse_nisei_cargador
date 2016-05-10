@@ -10,8 +10,14 @@
 
 
 //-------- Defines For Configuration -------------
-#define PEAK_CURRENT_SET	800		//2A pico
 
+#define VOLTAGE_ZERO		2048	//---- Valores de tension del ADC
+#define VOLTAGE_MIN			2250
+#define VOLTAGE_SYNC_ON		100
+#define VOLTAGE_SYNC_OFF	50
+
+#define PEAK_CURRENT_SET	800		//2A pico
+#define VBAT_MIN_SET		VOLTAGE_MIN
 
 //-------- End Of Defines For Configuration ------
 //GPIOA pin0	ADC FASE
@@ -108,21 +114,14 @@ enum var_error_states
 #define TEMP_IN_65		3591
 #define TEMP_DISCONECT		4000
 
-
 //---- Timeout de los errores
-#define TT_ERROR_VBAT	1000
+#define TT_ERROR_VBAT	2000
 #define TT_BIP_LONG		1000
 #define TT_BIP_SHORT	300
 
+#define TT_CHARGING		60		//60 segs para volver a standby
 
-#define S_FULL		10
-#define S_HALF		3
-#define S_MIN		1
-#define S_NO		0
 
-#define FUNCTION_DMX	1
-#define FUNCTION_MAN	2
-#define FUNCTION_CAT	FUNCTION_MAN
 
 // ------- de los switches -------
 void UpdateErrors (void);
