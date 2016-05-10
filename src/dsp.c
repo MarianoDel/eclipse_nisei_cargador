@@ -91,7 +91,7 @@ unsigned short MAFilter32 (unsigned short new_sample, unsigned short * vsample)
 
 unsigned short MAFilter32New (unsigned short * vsample)
 {
-	unsigned short total_ma;
+	unsigned int total_ma;
 
 	total_ma = *(vsample) + *(vsample + 1) + *(vsample + 2) + *(vsample + 3) + *(vsample + 4) + *(vsample + 5) + *(vsample + 6) + *(vsample + 7);
 	total_ma += *(vsample + 8) + *(vsample + 9) + *(vsample + 10) + *(vsample + 11) + *(vsample + 12) + *(vsample + 13) + *(vsample + 14) + *(vsample + 15);

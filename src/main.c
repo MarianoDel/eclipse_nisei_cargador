@@ -114,7 +114,6 @@ unsigned char filter_index = 0;
 //--- FUNCIONES DEL MODULO ---//
 void DMAConfig (void);
 unsigned char CheckPolarity (void);
-unsigned char CheckVoltageMin (void);
 unsigned short GetVBAT (void);
 unsigned short GetTEMP (void);
 unsigned short GetVSETLOAD (void);
@@ -132,6 +131,7 @@ int main(void)
 	unsigned char onsync = 0;
 	enum var_main_states main_state = MAIN_STANDBY;
 	unsigned short vbat_local = 0;
+	unsigned short vsetload_local = 0;
 
 	//!< At this stage the microcontroller clock setting is already configured,
     //   this is done through SystemInit() function which is called from startup
@@ -205,6 +205,26 @@ int main(void)
 	*/
 	//FIN PRUEBA SYNC
 
+	//PRUEBA MOSFET
+	/*
+	while (1)
+	{
+		if (MOSFET)
+		{
+			MOSFET_OFF;
+			LEDY_OFF;
+		}
+		else
+		{
+			MOSFET_ON;
+			LEDY_ON;
+		}
+
+		Wait_ms(1000);
+	}
+	*/
+	//FIN PRUEBA MOSFET
+
 	//PRUEBA ERRORES
 	/*
 	onsync = 0;
@@ -250,7 +270,7 @@ int main(void)
 
 	//TIM Configuration.
 	TIM_1_Init();
-	TIM_14_Init();
+	//TIM_14_Init();
 	//Timer_3_Init();
 	//Timer_4_Init();
 
@@ -299,16 +319,10 @@ int main(void)
 				case MAIN_STANDBY:
 					//si tengo bateria conectada y necesita carga, lo hago
 					vbat_local = GetVBAT();
-					if ((vbat_local > VBAT_MIN_SET) && (vbat_local < VSETLOAD))
-					{
-						//empiezo a cargar siempre en SYNC
-						if (onsync)
-						{
-							main_state = MAIN_CHARGING;
-							MOSFET_ON;
-							LEDY_ON;
-						}
-					}
+					vsetload_local = GetVSETLOAD();
+					if ((vbat_local > VBAT_MIN_SET) && (vbat_local < vsetload_local))
+						main_state = MAIN_CHARGING;
+
 					break;
 
 				case MAIN_CHARGING:
@@ -323,10 +337,12 @@ int main(void)
 					}
 
 					vbat_local = GetVBAT();
+					vsetload_local = GetVSETLOAD();
 
-					if (vbat_local > VSETLOAD)		//cuento 60 segs y vuelvo a standby
+					if (vbat_local > vsetload_local)		//cuento 60 segs y vuelvo a standby
 					{
 						MOSFET_OFF;
+						LEDY_OFF;
 						secs++;
 
 						if (secs > TT_CHARGING)
@@ -335,14 +351,17 @@ int main(void)
 					else
 					{
 						//prendo mosfet siempre onsync
-						if (onsync)
+						if ((!SYNC) && (!MOSFET))
+						{
 							MOSFET_ON;
+							LEDY_ON;
+						}
 
 						if (secs)
 							secs--;
 					}
 
-					if (vbat_local > VBAT_MIN_SET)
+					if (vbat_local < VBAT_MIN_SET)
 					{
 						MOSFET_OFF;
 						LEDY_OFF;
@@ -365,12 +384,12 @@ int main(void)
 				case MAIN_ERROR_VBAT:
 					if (!timer_standby)
 					{
-						if (CheckPolarity() == RESP_NO)
-						{
-							ErrorCommands(ERROR_NO);
-							main_state = MAIN_STANDBY;
-						}
-						else
+//						if (CheckPolarity() == RESP_NO)
+//						{
+//							ErrorCommands(ERROR_NO);
+//							main_state = MAIN_STANDBY;
+//						}
+//						else
 							timer_standby = TT_ERROR_VBAT;
 					}
 					break;
@@ -386,27 +405,20 @@ int main(void)
 			//----- Verificaciones comunes a todos los casos -----//
 
 			//verifico polaridad y tension minima
-			if (main_state < MAIN_ERROR_IPEAK)
-			{
-				if ((CheckPolarity() == RESP_YES) || (CheckVoltageMin() == RESP_YES))
-				{
-					MOSFET_OFF;
-					main_state = MAIN_ERROR_VBAT;
-					ErrorCommands(ERROR_VBAT);
-					timer_standby = TT_ERROR_VBAT;
-				}
-			}
+//			if (main_state < MAIN_ERROR_IPEAK)
+//			{
+//				if (CheckPolarity() == RESP_YES)
+//				{
+//					MOSFET_OFF;
+//					main_state = MAIN_ERROR_VBAT;
+//					ErrorCommands(ERROR_VBAT);
+//					timer_standby = TT_ERROR_VBAT;
+//				}
+//			}
 
 			//Verifico fase con ADC
 			if (VIN > VOLTAGE_SYNC_ON)
-			{
-				if ((!onsync) && (!SYNC))
-					onsync = 1;
-				else
-					onsync = 0;
-
 				SYNC_ON;
-			}
 			else if (VIN < VOLTAGE_SYNC_OFF)
 				SYNC_OFF;
 
@@ -431,14 +443,6 @@ unsigned char CheckPolarity (void)
 {
 	//reviso el ultimo valor de VBAT
 	if (VBAT < VOLTAGE_ZERO)	//debe ser tension negativa en la bateria
-		return RESP_YES;
-	else
-		return RESP_NO;
-}
-
-unsigned char CheckVoltageMin (void)
-{
-	if (VBAT < VOLTAGE_MIN)
 		return RESP_YES;
 	else
 		return RESP_NO;
@@ -519,65 +523,6 @@ void UpdateFilters (void)
 	}
 }
 
-/*
-unsigned short Get_Temp (void)
-{
-	unsigned short total_ma;
-	unsigned char j;
-
-	//Kernel mejorado ver 2
-	//si el vector es de 0 a 7 (+1) sumo todas las posiciones entre 1 y 8, acomodo el nuevo vector entre 0 y 7
-	total_ma = 0;
-	vtemp[LARGO_FILTRO] = ReadADC1 (CH_IN_TEMP);
-    for (j = 0; j < (LARGO_FILTRO); j++)
-    {
-    	total_ma += vtemp[j + 1];
-    	vtemp[j] = vtemp[j + 1];
-    }
-
-    return total_ma >> DIVISOR;
-}
-*/
-
-/*
-unsigned char MAFilter (unsigned char new_sample, unsigned char * vsample)
-{
-	unsigned short total_ma;
-	unsigned char j;
-
-	//Kernel mejorado ver 2
-	//si el vector es de 0 a 7 (+1) sumo todas las posiciones entre 1 y 8, acomodo el nuevo vector entre 0 y 7
-	total_ma = 0;
-	*(vsample + LARGO_F) = new_sample;
-
-    for (j = 0; j < (LARGO_F); j++)
-    {
-    	total_ma += *(vsample + j + 1);
-    	*(vsample + j) = *(vsample + j + 1);
-    }
-
-    return total_ma >> DIVISOR_F;
-}
-
-unsigned short MAFilter16 (unsigned char new_sample, unsigned char * vsample)
-{
-	unsigned short total_ma;
-	unsigned char j;
-
-	//Kernel mejorado ver 2
-	//si el vector es de 0 a 7 (+1) sumo todas las posiciones entre 1 y 8, acomodo el nuevo vector entre 0 y 7
-	total_ma = 0;
-	*(vsample + LARGO_F) = new_sample;
-
-    for (j = 0; j < (LARGO_F); j++)
-    {
-    	total_ma += *(vsample + j + 1);
-    	*(vsample + j) = *(vsample + j + 1);
-    }
-
-    return total_ma >> DIVISOR_F;
-}
-*/
 
 void TimingDelay_Decrement(void)
 {

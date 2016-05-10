@@ -12,7 +12,8 @@
 //-------- Defines For Configuration -------------
 
 #define VOLTAGE_ZERO		2048	//---- Valores de tension del ADC
-#define VOLTAGE_MIN			2250
+//#define VOLTAGE_MIN			2250
+#define VOLTAGE_MIN			1500
 #define VOLTAGE_SYNC_ON		100
 #define VOLTAGE_SYNC_OFF	50
 
@@ -31,9 +32,9 @@
 //GPIOA pin7
 
 //GPIOA pin8
-#define MOSFET ((GPIOA->ODR & 0x0100) != 0)
-#define MOSFET_ON	GPIOA->BSRR = 0x00000100
-#define MOSFET_OFF GPIOA->BSRR = 0x01000000
+#define MOSFET ((GPIOA->ODR & 0x0100) == 0)
+#define MOSFET_OFF	GPIOA->BSRR = 0x00000100
+#define MOSFET_ON GPIOA->BSRR = 0x01000000
 
 //GPIOA pin9
 
