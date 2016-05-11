@@ -11,13 +11,15 @@
 
 //-------- Defines For Configuration -------------
 
-#define VOLTAGE_ZERO		2048	//---- Valores de tension del ADC
+//#define VOLTAGE_ZERO		2048	//---- Valores de tension del ADC
+#define VOLTAGE_ZERO		1950	//zero corregido 1.76V
 //#define VOLTAGE_MIN			2250
-#define VOLTAGE_MIN			1500
+#define VOLTAGE_MIN			VOLTAGE_ZERO
 #define VOLTAGE_SYNC_ON		100
 #define VOLTAGE_SYNC_OFF	50
 
-#define PEAK_CURRENT_SET	800		//2A pico
+//#define PEAK_CURRENT_SET	800		//2A pico
+#define PEAK_CURRENT_SET	2000		//2A pico
 #define VBAT_MIN_SET		VOLTAGE_MIN
 
 //-------- End Of Defines For Configuration ------
@@ -80,6 +82,7 @@ enum var_main_states
 	MAIN_ERROR_IPEAK,
 	MAIN_ERROR_VIN,
 	MAIN_ERROR_VBAT,
+	MAIN_ERROR_VBAT_REVERSAL,
 	MAIN_ERROR_TEMP
 
 };
@@ -91,6 +94,7 @@ enum var_error_states
 	ERROR_IPEAK,
 	ERROR_VIN,
 	ERROR_VBAT,
+	ERROR_VBAT_REVERSAL,
 	ERROR_TEMP,
 	ERROR_RUN,
 	ERROR_RUN_A,
@@ -117,6 +121,7 @@ enum var_error_states
 
 //---- Timeout de los errores
 #define TT_ERROR_VBAT	2000
+#define TT_ERROR_VBAT_REVERSAL	3000
 #define TT_BIP_LONG		1000
 #define TT_BIP_SHORT	300
 

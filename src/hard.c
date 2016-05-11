@@ -43,6 +43,12 @@ void UpdateErrors (void)
 			error_state = ERROR_RUN;
 			break;
 
+		case ERROR_VBAT_REVERSAL:
+			error_bips = 5;
+			error_bips_counter = error_bips;
+			error_state = ERROR_RUN;
+			break;
+
 		case ERROR_TEMP:
 			error_bips = 4;
 			error_bips_counter = error_bips;

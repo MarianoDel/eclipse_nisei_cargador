@@ -47,6 +47,7 @@ void AdcConfig (void)
 	//set resolution & trigger
 	//ADC1->CFGR1 |= ADC_Resolution_10b | ADC_ExternalTrigConvEdge_Rising | ADC_ExternalTrigConv_T3_TRGO;
 	ADC1->CFGR1 |= ADC_Resolution_12b | ADC_ExternalTrigConvEdge_Rising | ADC_ExternalTrigConv_T1_TRGO;
+	ADC1->CFGR1 |= ADC_CFGR1_DISCEN;
 	ADC1->CFGR1 |= ADC_DMAMode_Circular | 0x00000001;
 	//ADC1->CFGR1 |= ADC_Resolution_10b | ADC_ExternalTrigConvEdge_Falling | ADC_ExternalTrigConv_T3_TRGO;
 
@@ -216,3 +217,39 @@ unsigned short ReadADC1Check (unsigned char channel)
 	return 1;
 }
 
+/**
+  * @brief  Active the Calibration operation for the selected ADC.
+  * @note   The Calibration can be initiated only when ADC is still in the
+  *         reset configuration (ADEN must be equal to 0).
+  * @param  ADCx: where x can be 1 to select the ADC1 peripheral.
+  * @retval ADC Calibration factor
+  */
+
+/*
+uint32_t ADC_GetCalibrationFactor(unsigned int * ADCx)
+{
+  uint32_t tmpreg = 0, calibrationcounter = 0, calibrationstatus = 0;
+
+  // Set the ADC calibartion
+  ADCx->CR |= (uint32_t)ADC_CR_ADCAL;
+
+  // Wait until no ADC calibration is completed
+  do
+  {
+    calibrationstatus = ADCx->CR & ADC_CR_ADCAL;
+    calibrationcounter++;
+  } while((calibrationcounter != CALIBRATION_TIMEOUT) && (calibrationstatus != 0x00));
+
+  if((uint32_t)(ADCx->CR & ADC_CR_ADCAL) == RESET)
+  {
+    //Get the calibration factor from the ADC data register
+    tmpreg = ADCx->DR;
+  }
+  else
+  {
+    // Error factor
+    tmpreg = 0x00000000;
+  }
+  return tmpreg;
+}
+*/

@@ -113,7 +113,7 @@ unsigned char filter_index = 0;
 
 //--- FUNCIONES DEL MODULO ---//
 void DMAConfig (void);
-unsigned char CheckPolarity (void);
+unsigned char CheckPolarityReversal (void);
 unsigned short GetVBAT (void);
 unsigned short GetTEMP (void);
 unsigned short GetVSETLOAD (void);
@@ -129,6 +129,7 @@ int main(void)
 {
 	unsigned char i;
 	unsigned char onsync = 0;
+	unsigned char mosfet_sync = 0;
 	enum var_main_states main_state = MAIN_STANDBY;
 	unsigned short vbat_local = 0;
 	unsigned short vsetload_local = 0;
@@ -318,23 +319,29 @@ int main(void)
 			{
 				case MAIN_STANDBY:
 					//si tengo bateria conectada y necesita carga, lo hago
+					MOSFET_OFF;
 					vbat_local = GetVBAT();
 					vsetload_local = GetVSETLOAD();
 					if ((vbat_local > VBAT_MIN_SET) && (vbat_local < vsetload_local))
 						main_state = MAIN_CHARGING;
 
+					if (CheckPolarityReversal() == RESP_YES)
+					{
+						main_state = MAIN_ERROR_VBAT_REVERSAL;
+						ErrorCommands(ERROR_VBAT_REVERSAL);
+						timer_standby = TT_ERROR_VBAT_REVERSAL;
+					}
 					break;
 
 				case MAIN_CHARGING:
 					//reviso no pasarme de corriente si estoy con el mosfet activo
-					if ((IPEAK > PEAK_CURRENT_SET) && (MOSFET))
-					{
-						MOSFET_OFF;
-						LEDY_OFF;
-						ErrorCommands(ERROR_IPEAK);
-						main_state = MAIN_ERROR_IPEAK;
-						break;
-					}
+//					if ((IPEAK > PEAK_CURRENT_SET) && (MOSFET))
+//					{
+//						MOSFET_OFF;
+//						LEDY_OFF;
+//						LEDR_ON;
+//						break;
+//					}
 
 					vbat_local = GetVBAT();
 					vsetload_local = GetVSETLOAD();
@@ -351,10 +358,11 @@ int main(void)
 					else
 					{
 						//prendo mosfet siempre onsync
-						if ((!SYNC) && (!MOSFET))
+						if (mosfet_sync)
 						{
 							MOSFET_ON;
 							LEDY_ON;
+							LEDR_OFF;	//para salir de IPEAK
 						}
 
 						if (secs)
@@ -384,13 +392,26 @@ int main(void)
 				case MAIN_ERROR_VBAT:
 					if (!timer_standby)
 					{
-//						if (CheckPolarity() == RESP_NO)
-//						{
-//							ErrorCommands(ERROR_NO);
-//							main_state = MAIN_STANDBY;
-//						}
-//						else
+						if (GetVBAT() > VOLTAGE_MIN)
+						{
+							ErrorCommands(ERROR_NO);
+							main_state = MAIN_STANDBY;
+						}
+						else
 							timer_standby = TT_ERROR_VBAT;
+					}
+					break;
+
+				case MAIN_ERROR_VBAT_REVERSAL:
+					if (!timer_standby)
+					{
+						if (CheckPolarityReversal() == RESP_NO)
+						{
+							ErrorCommands(ERROR_NO);
+							main_state = MAIN_STANDBY;
+						}
+						else
+							timer_standby = TT_ERROR_VBAT_REVERSAL;
 					}
 					break;
 
@@ -407,18 +428,18 @@ int main(void)
 			//verifico polaridad y tension minima
 //			if (main_state < MAIN_ERROR_IPEAK)
 //			{
-//				if (CheckPolarity() == RESP_YES)
-//				{
-//					MOSFET_OFF;
-//					main_state = MAIN_ERROR_VBAT;
-//					ErrorCommands(ERROR_VBAT);
-//					timer_standby = TT_ERROR_VBAT;
-//				}
 //			}
 
 			//Verifico fase con ADC
 			if (VIN > VOLTAGE_SYNC_ON)
+			{
+				if (!SYNC)	//si venia de no estar en SYNC pongo el flag
+					mosfet_sync = 1;
+				else
+					mosfet_sync = 0;
+
 				SYNC_ON;
+			}
 			else if (VIN < VOLTAGE_SYNC_OFF)
 				SYNC_OFF;
 
@@ -439,7 +460,7 @@ int main(void)
 //--- End of Main ---//
 
 
-unsigned char CheckPolarity (void)
+unsigned char CheckPolarityReversal (void)
 {
 	//reviso el ultimo valor de VBAT
 	if (VBAT < VOLTAGE_ZERO)	//debe ser tension negativa en la bateria
