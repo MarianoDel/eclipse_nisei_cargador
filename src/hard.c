@@ -23,7 +23,6 @@ void UpdateErrors (void)
 	switch (error_state)
 	{
 		case ERROR_NO:
-			LEDR_OFF;
 			break;
 
 		case ERROR_IPEAK:
@@ -102,6 +101,9 @@ void UpdateErrors (void)
 
 void ErrorCommands(unsigned char command)
 {
+	if (command == ERROR_NO)
+		LEDR_OFF;
+
 	error_state = command;
 }
 

@@ -86,8 +86,9 @@ void TIM_1_Init (void)
 	//TIM1->CCER |= TIM_CCER_CC2E | TIM_CCER_CC3E;
 	//TIM1->BDTR |= TIM_BDTR_MOE;
 
-	TIM1->PSC = 11;		//24MHz
-	TIM1->ARR = 1023;	//each tick 41.66ns
+	TIM1->PSC = 11;		//4MHz
+	TIM1->ARR = 1000;	//each update 250us
+	//TIM1->ARR = 250;	//each update 250us
 
 	TIM1->CNT = 0;
 
@@ -102,7 +103,7 @@ void TIM_1_Init (void)
 
 	// Enable timer ver UDIS
 	//TIM1->DIER |= TIM_DIER_UIE;
-	TIM1->CR1 |= TIM_CR1_CEN;
+	//TIM1->CR1 |= TIM_CR1_CEN;
 
 	//TIM1->CCR1 = 0;
 	//TIM1->CCR2 = 0;

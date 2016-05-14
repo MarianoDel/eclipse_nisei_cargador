@@ -8,8 +8,6 @@
 #include "stm32f0xx.h"
 #include "hard.h"
 
-#include "stm32f0xx_adc.h"
-//la incluyo por constates como ADC_SampleTime_239_5Cycles
 
 //--- VARIABLES EXTERNAS ---//
 extern volatile unsigned short adc_ch [];
@@ -21,6 +19,18 @@ extern volatile unsigned char seq_ready;
 //--- VARIABLES GLOBALES ---//
 //volatile unsigned char channel_conv = 0;
 
+//Single conversion mode (CONT=0)
+//In Single conversion mode, the ADC performs a single sequence of conversions,
+//converting all the channels once.
+
+//Continuous conversion mode (CONT=1)
+//In continuous conversion mode, when a software or hardware trigger event occurs,
+//the ADC performs a sequence of conversions, converting all the channels once and then
+//automatically re-starts and continuously performs the same sequence of conversions
+
+//Discontinuous mode (DISCEN)
+//In this mode (DISCEN=1), a hardware or software trigger event is required to start
+//each conversion defined in the sequence
 
 void AdcConfig (void)
 {
@@ -47,8 +57,8 @@ void AdcConfig (void)
 	//set resolution & trigger
 	//ADC1->CFGR1 |= ADC_Resolution_10b | ADC_ExternalTrigConvEdge_Rising | ADC_ExternalTrigConv_T3_TRGO;
 	ADC1->CFGR1 |= ADC_Resolution_12b | ADC_ExternalTrigConvEdge_Rising | ADC_ExternalTrigConv_T1_TRGO;
-	ADC1->CFGR1 |= ADC_CFGR1_DISCEN;
-	ADC1->CFGR1 |= ADC_DMAMode_Circular | 0x00000001;
+	//ADC1->CFGR1 |= ADC_CFGR1_DISCEN;
+	ADC1->CFGR1 |= ADC_CFGR1_DMAEN | ADC_CFGR1_DMACFG;
 	//ADC1->CFGR1 |= ADC_Resolution_10b | ADC_ExternalTrigConvEdge_Falling | ADC_ExternalTrigConv_T3_TRGO;
 
 	//set sampling time
@@ -76,7 +86,7 @@ void AdcConfig (void)
 #endif
 
 	//calibrar ADC
-	cal = ADC_GetCalibrationFactor(ADC1);
+	cal = ADCGetCalibrationFactor();
 
 	// Enable ADC1
 	ADC1->CR |= ADC_CR_ADEN;
@@ -217,39 +227,30 @@ unsigned short ReadADC1Check (unsigned char channel)
 	return 1;
 }
 
-/**
-  * @brief  Active the Calibration operation for the selected ADC.
-  * @note   The Calibration can be initiated only when ADC is still in the
-  *         reset configuration (ADEN must be equal to 0).
-  * @param  ADCx: where x can be 1 to select the ADC1 peripheral.
-  * @retval ADC Calibration factor
-  */
-
-/*
-uint32_t ADC_GetCalibrationFactor(unsigned int * ADCx)
+unsigned int ADCGetCalibrationFactor (void)
 {
   uint32_t tmpreg = 0, calibrationcounter = 0, calibrationstatus = 0;
 
-  // Set the ADC calibartion
-  ADCx->CR |= (uint32_t)ADC_CR_ADCAL;
+  /* Set the ADC calibartion */
+  ADC1->CR |= (uint32_t)ADC_CR_ADCAL;
 
-  // Wait until no ADC calibration is completed
+  /* Wait until no ADC calibration is completed */
   do
   {
-    calibrationstatus = ADCx->CR & ADC_CR_ADCAL;
+    calibrationstatus = ADC1->CR & ADC_CR_ADCAL;
     calibrationcounter++;
   } while((calibrationcounter != CALIBRATION_TIMEOUT) && (calibrationstatus != 0x00));
 
-  if((uint32_t)(ADCx->CR & ADC_CR_ADCAL) == RESET)
+  if((uint32_t)(ADC1->CR & ADC_CR_ADCAL) == RESET)
   {
-    //Get the calibration factor from the ADC data register
-    tmpreg = ADCx->DR;
+    /*Get the calibration factor from the ADC data register */
+    tmpreg = ADC1->DR;
   }
   else
   {
-    // Error factor
+    /* Error factor */
     tmpreg = 0x00000000;
   }
   return tmpreg;
 }
-*/
+

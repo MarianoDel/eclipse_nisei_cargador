@@ -18,8 +18,8 @@
 #define VOLTAGE_SYNC_ON		100
 #define VOLTAGE_SYNC_OFF	50
 
-//#define PEAK_CURRENT_SET	800		//2A pico
-#define PEAK_CURRENT_SET	2000		//2A pico
+#define PEAK_CURRENT_SET	1240		//(1V en pata 1 opamp) 2A pico
+//#define PEAK_CURRENT_SET	2000		//2A pico
 #define VBAT_MIN_SET		VOLTAGE_MIN
 
 //-------- End Of Defines For Configuration ------

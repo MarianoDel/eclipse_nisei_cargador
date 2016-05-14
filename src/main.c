@@ -128,7 +128,7 @@ void UpdateFilters (void);
 int main(void)
 {
 	unsigned char i;
-	unsigned char onsync = 0;
+	unsigned char onsync = 0, enab = 0;
 	unsigned char mosfet_sync = 0;
 	enum var_main_states main_state = MAIN_STANDBY;
 	unsigned short vbat_local = 0;
@@ -286,32 +286,65 @@ int main(void)
 	//DMA configuration.
 	DMAConfig();
 
+	//--- COMIENZO Synchro ADC y DMA ---//
+	if ((ADC1->CR & ADC_CR_ADSTART) != 0) 		//Ensure that no conversion on going
+	{
+		ADC1->CR |= ADC_CR_ADSTP; 				//Stop any ongoing conversion
+	}
 
-	//--- Prueba ADC y DMA ---//
+	while ((ADC1->CR & ADC_CR_ADSTP) != 0);		//Wait until ADSTP is reset by hardware i.e. conversion is stopped
+	ADC1->CR |= ADC_CR_ADDIS;					//Disable the ADC
+	while ((ADC1->CR & ADC_CR_ADEN) != 0);		//Wait until the ADC is fully disabled
+
+	DMA1_Channel1->CCR |= DMA_CCR_EN;			//habilito el DMA
+	TIM1->CR1 |= TIM_CR1_CEN;					//habilito el TIM1
+
+	ADC1->CR |= ADC_CR_ADEN;					//Enable the ADC
+	while ((ADC1->ISR & ADC_ISR_ADRDY) == 0);	//Wait until ADC ready
+
+	ADC1->CR |= ADC_CR_ADSTART;			//para que pueda disparar por TIM1
+	//--- FIN Synchro ADC y DMA ---//
+
+	//--- Prueba Synchro ADC y DMA ---//
+	/*
+	while (1)
+	{
+		if (DMA1->ISR & DMA1_FLAG_TC1)
+		{
+		    // Clear DMA TC flag
+			DMA1->IFCR = DMA1_FLAG_TC1;
+			if ((LEDR) && (adc_ch[3] > 3500))	//es el pullup de TEMP
+			{
+				LEDR_OFF;
+				MOSFET_OFF;
+			}
+			else
+			{
+				LEDR_ON;
+				MOSFET_ON;
+			}
+		}
+	}
+	*/
+	//--- Fin Prueba Synchro ADC y DMA ---//
+
+	//--- Comienzo Programa de Produccion ---//
 
 	while(1)
 	{
-		//busco sync con DMA
-		if ((!onsync) && (ADC1->ISR & ADC_IT_EOC))
-		{
-			ADC1->ISR |= ADC_IT_EOC;
-			onsync = 1;
-			DMA1_Channel1->CCR |= DMA_CCR_EN;
-			LEDG_ON;
-		}
-
 		//me fijo si hubo overrun
-		if (ADC1->ISR & ADC_IT_OVR)
-		{
-			ADC1->ISR |= ADC_IT_EOC | ADC_IT_EOSEQ | ADC_IT_OVR;
-			if (LEDY)
-				LEDY_OFF;
-			else
-				LEDY_ON;
-		}
+//		if (ADC1->ISR & ADC_IT_OVR)
+//		{
+//			ADC1->ISR |= ADC_IT_EOC | ADC_IT_EOSEQ | ADC_IT_OVR;
+//			if (LEDY)
+//				LEDY_OFF;
+//			else
+//				LEDY_ON;
+//		}
 
 		if (DMA1->ISR & DMA1_FLAG_TC1)
 		{
+			LEDG_ON;
 		    // Clear DMA TC flag
 			DMA1->IFCR = DMA1_FLAG_TC1;
 
@@ -335,13 +368,15 @@ int main(void)
 
 				case MAIN_CHARGING:
 					//reviso no pasarme de corriente si estoy con el mosfet activo
-//					if ((IPEAK > PEAK_CURRENT_SET) && (MOSFET))
-//					{
-//						MOSFET_OFF;
-//						LEDY_OFF;
-//						LEDR_ON;
-//						break;
-//					}
+					if ((IPEAK > PEAK_CURRENT_SET) && (MOSFET))
+					{
+						MOSFET_OFF;
+						LEDY_OFF;
+						LEDR_ON;
+						timer_standby = 2;
+						main_state = MAIN_ERROR_IPEAK;
+						break;
+					}
 
 					vbat_local = GetVBAT();
 					vsetload_local = GetVSETLOAD();
@@ -369,21 +404,25 @@ int main(void)
 							secs--;
 					}
 
-					if (vbat_local < VBAT_MIN_SET)
-					{
-						MOSFET_OFF;
-						LEDY_OFF;
-						ErrorCommands(ERROR_VBAT);
-						main_state = MAIN_ERROR_VBAT;
-						timer_standby = TT_ERROR_VBAT;
-					}
+//					if (vbat_local < VBAT_MIN_SET)
+//					{
+//						MOSFET_OFF;
+//						LEDY_OFF;
+//						ErrorCommands(ERROR_VBAT);
+//						main_state = MAIN_ERROR_VBAT;
+//						timer_standby = TT_ERROR_VBAT;
+//					}
 
 					break;
 
 				case MAIN_ERROR_IPEAK:
 					//a diferencia de otros casos reestablezco al toque el error
-					ErrorCommands(ERROR_NO);
-					main_state = MAIN_STANDBY;
+					if (!timer_standby)
+					{
+						main_state = MAIN_STANDBY;
+						LEDR_OFF;
+					}
+
 					break;
 
 				case MAIN_ERROR_VIN:
@@ -443,7 +482,7 @@ int main(void)
 			else if (VIN < VOLTAGE_SYNC_OFF)
 				SYNC_OFF;
 
-
+			LEDG_OFF;							//---- hasta aca 13.2us
 		}
 
 		//Resuelvo cuestiones que no tengan que ver con las muestras
@@ -452,6 +491,7 @@ int main(void)
 		//muestro el led de error segun error_state
 		UpdateErrors();
 
+		//LEDG_OFF;								//---- hasta aca 16us
 	}
 
 	//--- Fin Prueba ADC y DMA ---//
@@ -593,5 +633,6 @@ void DMAConfig(void)
 	//Enable
 	//DMA1_Channel1->CCR |= DMA_CCR_EN;
 }
+
 
 

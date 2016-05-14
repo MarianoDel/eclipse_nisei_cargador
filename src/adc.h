@@ -111,11 +111,13 @@
 #define ADC_AnalogWatchdog_Channel_17                ((uint32_t)0x44000000)
 #define ADC_AnalogWatchdog_Channel_18                ((uint32_t)0x48000000)
 
+#define CALIBRATION_TIMEOUT       ((uint32_t)0x0000F000)
 
 void AdcConfig (void);
 unsigned short ReadADC1 (unsigned int);
 unsigned short ReadADC1_SameSampleTime (unsigned int);
 void SetADC1_SampleTime (void);
 unsigned short ReadADC1Check (unsigned char);
+unsigned int ADCGetCalibrationFactor (void);
 
 #endif /* ADC_H_ */
