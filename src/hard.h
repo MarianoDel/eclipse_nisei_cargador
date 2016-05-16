@@ -120,8 +120,10 @@ enum var_error_states
 #define TEMP_IN_50		3434
 #define TEMP_IN_65		3591
 
-#define VTEMP_NTC_HIGH		60			//1K 90°
-#define VTEMP_NTC_NORMAL	117			//2K 65°
+//#define VTEMP_NTC_HIGH		60			//1K 90°
+//#define VTEMP_NTC_NORMAL	117			//2K 65°
+#define VTEMP_NTC_HIGH		200			//2.5K 	pruebas
+#define VTEMP_NTC_NORMAL	265			//5k 	pruebas
 #define VTEMP_NTC_LOW		525			//10K 20°	600mV
 
 //---- Timeout de los errores

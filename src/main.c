@@ -91,6 +91,7 @@ volatile unsigned short msecs = 0;
 // ------- de los filtros de mediciones -------
 #define LARGO_F		32
 #define DIVISOR_F	5
+//#define VBAT_WITH_DECIMATION
 unsigned short vd0 [LARGO_F];
 unsigned short vd1 [LARGO_F];
 unsigned short vd2 [LARGO_F];
@@ -104,6 +105,10 @@ unsigned short vd4 [LARGO_F];
 
 unsigned char filter_index = 0;
 
+#ifdef VBAT_WITH_DECIMATION
+unsigned char filter_index_vbat = 0;
+unsigned char decimation_vbat = 0;
+#endif
 
 #define RCC_DMA_CLK (RCC->AHBENR & RCC_AHBENR_DMAEN)
 #define RCC_DMA_CLK_ON 		RCC->AHBENR |= RCC_AHBENR_DMAEN
@@ -120,6 +125,7 @@ unsigned short GetVBAT (void);
 unsigned char GetTEMP (void);
 unsigned short GetVSETLOAD (void);
 void UpdateFilters (void);
+void UpdateFilterVBAT (void);
 
 
 //-------------------------------------------//
@@ -130,7 +136,6 @@ void UpdateFilters (void);
 int main(void)
 {
 	unsigned char i;
-	unsigned char onsync = 0, enab = 0;
 	unsigned char mosfet_sync = 0;
 	enum var_main_states main_state = MAIN_STANDBY;
 	unsigned short vbat_local = 0;
@@ -488,15 +493,20 @@ int main(void)
 				SYNC_OFF;
 
 			//LEDG_OFF;							//---- hasta aca 13.2us
+
+			//Resuelvo cuestiones en synchro
+			UpdateFilters();
+#ifdef VBAT_WITH_DECIMATION
+			UpdateFilterVBAT();
+#endif
+
+			LEDG_ON;								//---- hasta aca 16us
 		}
 
 		//Resuelvo cuestiones que no tengan que ver con las muestras
-		UpdateFilters();
-
 		//muestro el led de error segun error_state
 		UpdateErrors();
 
-		LEDG_ON;								//---- hasta aca 16us
 	}
 
 	//--- Fin Prueba ADC y DMA ---//
@@ -579,7 +589,10 @@ void UpdateFilters (void)
 	if (filter_index < LARGO_F)
 	{
 		vd0 [filter_index] = adc_ch[0];
+
+#ifndef VBAT_WITH_DECIMATION
 		vd1 [filter_index] = adc_ch[1];
+#endif
 		vd2 [filter_index] = adc_ch[2];
 		vd3 [filter_index] = adc_ch[3];
 		vd4 [filter_index] = adc_ch[4];
@@ -589,15 +602,41 @@ void UpdateFilters (void)
 	else
 	{
 		vd0 [0] = adc_ch[0];
+
+#ifndef VBAT_WITH_DECIMATION
 		vd1 [0] = adc_ch[1];
+#endif
 		vd2 [0] = adc_ch[2];
 		vd3 [0] = adc_ch[3];
 		vd4 [0] = adc_ch[4];
 
-		filter_index = 0;
+		filter_index = 1;
 	}
 }
 
+#ifdef VBAT_WITH_DECIMATION
+void UpdateFilterVBAT (void)
+{
+	if (decimation_vbat)
+		decimation_vbat--;
+	else
+	{
+		decimation_vbat = 5;
+		if (filter_index_vbat < LARGO_F)
+		{
+			vd1 [filter_index_vbat] = adc_ch[1];
+
+			filter_index_vbat++;
+		}
+		else
+		{
+			vd1 [0] = adc_ch[1];
+
+			filter_index_vbat = 1;
+		}
+	}
+}
+#endif
 
 void TimingDelay_Decrement(void)
 {
