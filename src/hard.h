@@ -14,11 +14,13 @@
 //#define VOLTAGE_ZERO		2048	//---- Valores de tension del ADC
 #define VOLTAGE_ZERO		1950	//zero corregido 1.76V
 //#define VOLTAGE_MIN			2250
-#define VOLTAGE_MIN			VOLTAGE_ZERO
+#define VOLTAGE_MIN			(VOLTAGE_ZERO + 150)
 #define VOLTAGE_SYNC_ON		100
 #define VOLTAGE_SYNC_OFF	50
 
-#define PEAK_CURRENT_SET	1240		//(1V en pata 1 opamp) 2A pico
+//#define PEAK_CURRENT_SET	600		//(0.8V en pata 1 opamp) 25A pico
+//#define PEAK_CURRENT_SET	1240		//(1V en pata 1 opamp) 31A pico
+#define PEAK_CURRENT_SET	2250		//(1V en pata 1 opamp) 35A pico
 //#define PEAK_CURRENT_SET	2000		//2A pico
 #define VBAT_MIN_SET		VOLTAGE_MIN
 
@@ -117,11 +119,15 @@ enum var_error_states
 #define TEMP_IN_35		3279
 #define TEMP_IN_50		3434
 #define TEMP_IN_65		3591
-#define TEMP_DISCONECT		4000
+
+#define VTEMP_NTC_HIGH		60			//1K 90°
+#define VTEMP_NTC_NORMAL	117			//2K 65°
+#define VTEMP_NTC_LOW		525			//10K 20°	600mV
 
 //---- Timeout de los errores
 #define TT_ERROR_VBAT	2000
 #define TT_ERROR_VBAT_REVERSAL	3000
+#define TT_ERROR_TEMP	3000
 #define TT_BIP_LONG		1000
 #define TT_BIP_SHORT	300
 

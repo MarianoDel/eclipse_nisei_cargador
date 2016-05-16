@@ -109,13 +109,15 @@ unsigned char filter_index = 0;
 #define RCC_DMA_CLK_ON 		RCC->AHBENR |= RCC_AHBENR_DMAEN
 #define RCC_DMA_CLK_OFF 	RCC->AHBENR &= ~RCC_AHBENR_DMAEN
 
-
+#define TEMP_HIGH	2
+#define TEMP_NORMAL	1
+#define TEMP_LOW	0
 
 //--- FUNCIONES DEL MODULO ---//
 void DMAConfig (void);
 unsigned char CheckPolarityReversal (void);
 unsigned short GetVBAT (void);
-unsigned short GetTEMP (void);
+unsigned char GetTEMP (void);
 unsigned short GetVSETLOAD (void);
 void UpdateFilters (void);
 
@@ -332,19 +334,9 @@ int main(void)
 
 	while(1)
 	{
-		//me fijo si hubo overrun
-//		if (ADC1->ISR & ADC_IT_OVR)
-//		{
-//			ADC1->ISR |= ADC_IT_EOC | ADC_IT_EOSEQ | ADC_IT_OVR;
-//			if (LEDY)
-//				LEDY_OFF;
-//			else
-//				LEDY_ON;
-//		}
-
 		if (DMA1->ISR & DMA1_FLAG_TC1)
 		{
-			LEDG_ON;
+			LEDG_OFF;
 		    // Clear DMA TC flag
 			DMA1->IFCR = DMA1_FLAG_TC1;
 
@@ -373,7 +365,7 @@ int main(void)
 						MOSFET_OFF;
 						LEDY_OFF;
 						LEDR_ON;
-						timer_standby = 2;
+						timer_standby = 5;
 						main_state = MAIN_ERROR_IPEAK;
 						break;
 					}
@@ -404,15 +396,23 @@ int main(void)
 							secs--;
 					}
 
-//					if (vbat_local < VBAT_MIN_SET)
-//					{
-//						MOSFET_OFF;
-//						LEDY_OFF;
-//						ErrorCommands(ERROR_VBAT);
-//						main_state = MAIN_ERROR_VBAT;
-//						timer_standby = TT_ERROR_VBAT;
-//					}
+					if (vbat_local < VBAT_MIN_SET)
+					{
+						MOSFET_OFF;
+						LEDY_OFF;
+						ErrorCommands(ERROR_VBAT);
+						main_state = MAIN_ERROR_VBAT;
+						timer_standby = TT_ERROR_VBAT;
+					}
 
+					if (GetTEMP() == TEMP_HIGH)
+					{
+						MOSFET_OFF;
+						LEDY_OFF;
+						ErrorCommands(ERROR_TEMP);
+						main_state = MAIN_ERROR_TEMP;
+						timer_standby = TT_ERROR_TEMP;
+					}
 					break;
 
 				case MAIN_ERROR_IPEAK:
@@ -455,6 +455,16 @@ int main(void)
 					break;
 
 				case MAIN_ERROR_TEMP:
+					if (!timer_standby)
+					{
+						if (GetTEMP() == TEMP_LOW)
+						{
+							ErrorCommands(ERROR_NO);
+							main_state = MAIN_STANDBY;
+						}
+						else
+							timer_standby = TT_ERROR_TEMP;
+					}
 					break;
 
 				default:
@@ -463,11 +473,6 @@ int main(void)
 			}
 
 			//----- Verificaciones comunes a todos los casos -----//
-
-			//verifico polaridad y tension minima
-//			if (main_state < MAIN_ERROR_IPEAK)
-//			{
-//			}
 
 			//Verifico fase con ADC
 			if (VIN > VOLTAGE_SYNC_ON)
@@ -482,7 +487,7 @@ int main(void)
 			else if (VIN < VOLTAGE_SYNC_OFF)
 				SYNC_OFF;
 
-			LEDG_OFF;							//---- hasta aca 13.2us
+			//LEDG_OFF;							//---- hasta aca 13.2us
 		}
 
 		//Resuelvo cuestiones que no tengan que ver con las muestras
@@ -491,7 +496,7 @@ int main(void)
 		//muestro el led de error segun error_state
 		UpdateErrors();
 
-		//LEDG_OFF;								//---- hasta aca 16us
+		LEDG_ON;								//---- hasta aca 16us
 	}
 
 	//--- Fin Prueba ADC y DMA ---//
@@ -526,11 +531,14 @@ unsigned short GetVBAT (void)
 
 }
 
-unsigned short GetTEMP (void)
+//Contesta	TEMP_HIGH, TEMP_NORMAL, TEMP_LOW
+//
+unsigned char GetTEMP (void)
 {
+	unsigned short vtemp = 0;
 
 #if (LARGO_F == 32)
-	return MAFilter32New(TEMP_VECTOR);
+	vtemp = MAFilter32New(TEMP_VECTOR);
 #endif
 
 #if (LARGO_F == 16)
@@ -541,6 +549,12 @@ unsigned short GetTEMP (void)
 	return MAFilter8New(VBAT);
 #endif
 
+	if (vtemp > VTEMP_NTC_NORMAL)
+		return TEMP_LOW;
+	else if (vtemp > VTEMP_NTC_HIGH)
+		return TEMP_NORMAL;
+	else
+		return TEMP_HIGH;
 }
 
 unsigned short GetVSETLOAD (void)
